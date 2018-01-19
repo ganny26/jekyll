@@ -20,7 +20,9 @@ module Jekyll
       priority :low
 
       def initialize(config)
-        Jekyll::External.require_with_graceful_fail "kramdown"
+        unless defined?(Kramdown)
+          Jekyll::External.require_with_graceful_fail "kramdown"
+        end
         @config = config["kramdown"].dup || {}
         @config[:input] = :SmartyPants
       end
@@ -36,8 +38,10 @@ module Jekyll
       def convert(content)
         document = Kramdown::Document.new(content, @config)
         html_output = document.to_html.chomp
-        document.warnings.each do |warning|
-          Jekyll.logger.warn "Kramdown warning:", warning
+        if @config["show_warnings"]
+          document.warnings.each do |warning|
+            Jekyll.logger.warn "Kramdown warning:", warning.sub(%r!^Warning:\s+!, "")
+          end
         end
         html_output
       end
