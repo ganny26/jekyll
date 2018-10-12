@@ -41,9 +41,9 @@ module Jekyll
           markup = markup[match.end(0)..-1]
 
           value = if match[2]
-                    match[2].gsub(%r!\\"!, '"')
+                    match[2].gsub('\\"', '"')
                   elsif match[3]
-                    match[3].gsub(%r!\\'!, "'")
+                    match[3].gsub("\\'", "'")
                   elsif match[4]
                     context[match[4]]
                   end
@@ -90,13 +90,7 @@ module Jekyll
 
       # Render the variable if required
       def render_variable(context)
-        if @file =~ VARIABLE_SYNTAX
-          partial = context.registers[:site]
-            .liquid_renderer
-            .file("(variable)")
-            .parse(@file)
-          partial.render!(context)
-        end
+        Liquid::Template.parse(@file).render(context) if @file =~ VARIABLE_SYNTAX
       end
 
       def tag_includes_dirs(context)

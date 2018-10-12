@@ -96,15 +96,17 @@ module Jekyll
     #
     # Returns String the converted content.
     def convert(content)
-      converters.reduce(content) do |output, converter|
-        begin
-          converter.convert output
-        rescue StandardError => e
-          Jekyll.logger.error "Conversion error:",
-                              "#{converter.class} encountered an error while "\
-                              "converting '#{document.relative_path}':"
-          Jekyll.logger.error("", e.to_s)
-          raise e
+      Jekyll::Cache.new("Jekyll::Renderer").getset(content) do
+        converters.reduce(content) do |output, converter|
+          begin
+            converter.convert output
+          rescue StandardError => e
+            Jekyll.logger.error "Conversion error:",
+                                "#{converter.class} encountered an error while "\
+                                "converting '#{document.relative_path}':"
+            Jekyll.logger.error("", e.to_s)
+            raise e
+          end
         end
       end
     end
@@ -158,10 +160,10 @@ module Jekyll
         output = render_layout(output, layout, info)
         add_regenerator_dependencies(layout)
 
-        if (layout = site.layouts[layout.data["layout"]])
-          break if used.include?(layout)
-          used << layout
-        end
+        next unless (layout = site.layouts[layout.data["layout"]])
+        break if used.include?(layout)
+
+        used << layout
       end
       output
     end
@@ -202,6 +204,7 @@ module Jekyll
 
     def add_regenerator_dependencies(layout)
       return unless document.write?
+
       site.regenerator.add_dependency(
         site.in_source_dir(document.path),
         layout.path
